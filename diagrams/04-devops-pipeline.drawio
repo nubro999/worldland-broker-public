@@ -1,0 +1,142 @@
+<mxfile host="app.diagrams.net" modified="2026-05-06T10:00:00.000Z" agent="Claude" version="22.1.0" type="device">
+  <diagram name="DevOps Pipeline" id="diagram4">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="설계 #4 — DevOps 파이프라인 : 빌드 → 배포 → 운영" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fillColor=none;strokeColor=none" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="700" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="패턴: 12-Factor App  +  Immutable Infrastructure  +  Defense in Depth at every stage" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="350" y="65" width="700" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="problem_box" value="🎯 풀어야 했던 문제&#10;&#10;1) 빌드 시간을 짧게 + 이미지 크기를 작게 + 보안 표면(attack surface)을 최소화&#10;2) 비밀값(JWT secret, OAuth credential, K8s token)을 코드에 박지 않고 안전하게 주입&#10;3) 무중단 배포 + 자동 복구 + 운영 중 지표를 외부에 노출 (production-readiness)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#ff8c00;fontSize=12;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="60" y="115" width="1280" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="stage1" value="① Source &amp; CI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=8;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="60" y="230" width="240" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_1" value="GitHub Actions&#10;.github/workflows/ci.yml" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="80" y="270" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_2" value="trigger: push (main/mvp), PR&#10;concurrency: cancel-in-progress&#10;permissions: contents: read" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f9ff;strokeColor=#6c8ebf;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="80" y="320" width="200" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_3" value="Job: go-backend&#10;✓ go vet ./...&#10;✓ go build (3 binaries)&#10;✓ go test -count=1 ./..." style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f9ff;strokeColor=#6c8ebf;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="80" y="385" width="200" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_4" value="Job: docker-build&#10;needs: go-backend&#10;Buildx + GHA cache" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f9ff;strokeColor=#6c8ebf;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="80" y="460" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage2" value="② Container Build" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=8;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="335" y="230" width="280" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_1" value="Stage 1: Builder&#10;FROM golang:1.25-alpine&#10;CGO_ENABLED=0  GOOS=linux&#10;-ldflags=&quot;-w -s&quot;&#10;⇒ 정적 바이너리 + 디버그 심볼 제거" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5fdf5;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="355" y="270" width="240" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_arrow" value="COPY --from=builder /server" style="endArrow=classic;html=1;fontSize=10;fontStyle=2;strokeColor=#82b366;strokeWidth=2;align=center" edge="1" parent="1" source="s2_1" target="s2_2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_2" value="Stage 2: Production&#10;FROM gcr.io/distroless/static:nonroot&#10;USER nonroot:nonroot&#10;⇒ 이미지 ~10MB&#10;⇒ shell 없음, package manager 없음&#10;⇒ root 권한 없음" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5fdf5;strokeColor=#82b366;fontSize=10;align=left;spacingLeft=10;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="355" y="395" width="240" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="stage3" value="③ Deploy (K8s manifests)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=8;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="650" y="230" width="380" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_ns" value="Namespace: web3-ai" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#326ce5;strokeColor=#326ce5;fontSize=10;fontStyle=1;verticalAlign=middle;fontColor=#ffffff" vertex="1" parent="1">
+          <mxGeometry x="670" y="270" width="160" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_cm" value="ConfigMap: proxy-config&#10;PROXY_PORT, DEBUG_MODE&#10;ALLOWED_ORIGINS" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=9;align=left;spacingLeft=8;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="670" y="315" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_secret" value="Secret: proxy-secret&#10;GOOGLE_CLIENT_ID/SECRET&#10;JWT_SECRET" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6e6;strokeColor=#b85450;fontSize=9;align=left;spacingLeft=8;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="850" y="315" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_dep" value="Deployment: proxy-server&#10;replicas: 2 (HA)&#10;livenessProbe /health&#10;readinessProbe /ready&#10;resources: requests/limits&#10;ServiceAccount: proxy-sa" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=9;align=left;spacingLeft=8;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="670" y="385" width="160" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_svc_ing" value="Service (ClusterIP)&#10;+&#10;Ingress (nginx)&#10;TLS / CORS / SSL redirect" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fffbe6;strokeColor=#d6b656;fontSize=9;align=left;spacingLeft=8;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="850" y="385" width="160" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_rbac" value="RBAC&#10;ClusterRole + Binding (최소 권한)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f0e6ff;strokeColor=#9673a6;fontSize=9;align=left;spacingLeft=8;verticalAlign=top;spacingTop=4" vertex="1" parent="1">
+          <mxGeometry x="850" y="460" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="stage4" value="④ Operate (Day-2)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=8;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="1065" y="230" width="280" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_1" value="📊 Health &amp; HA&#10;• replicas:2 → Pod 다운 시 LB 우회&#10;• liveness 실패 → Pod 재시작&#10;• readiness 실패 → Service 제외" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff5f5;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1085" y="270" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_2" value="🔄 Rolling Update&#10;• maxSurge / maxUnavailable로 무중단&#10;• 새 Pod ready 확인 후 구 Pod 제거&#10;• 이미지 태그만 바꾸면 자동 롤링" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff5f5;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1085" y="345" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_3" value="📝 Observability&#10;• slog 구조화 로깅 (key=value)&#10;• Heartbeat staleness monitor&#10;• Mining metrics aggregation API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff5f5;strokeColor=#b85450;fontSize=10;align=left;spacingLeft=8;verticalAlign=top;spacingTop=6" vertex="1" parent="1">
+          <mxGeometry x="1085" y="420" width="240" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="flow1" value="" style="endArrow=classic;html=1;strokeColor=#000000;strokeWidth=3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="stage1" target="stage2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow2" value="" style="endArrow=classic;html=1;strokeColor=#000000;strokeWidth=3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="stage2" target="stage3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow3" value="" style="endArrow=classic;html=1;strokeColor=#000000;strokeWidth=3;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="stage3" target="stage4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_label1" value="✓ test pass&#10;✓ image build OK" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="295" y="200" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_label2" value="distroless image&#10;~10MB" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="610" y="200" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="flow_label3" value="kubectl apply&#10;rolling update" style="text;html=1;align=center;verticalAlign=middle;fontSize=10;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="1025" y="200" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_box" value="🛠️ 사용한 도구" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="60" y="540" width="640" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="t1_4" value="GitHub Actions&#10;ubuntu-latest&#10;actions/setup-go@v5&#10;cache: go.sum" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="80" y="580" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t2_4" value="Docker Buildx&#10;multi-stage&#10;GHA cache layer&#10;(type=gha)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="240" y="580" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t3_4" value="distroless/static&#10;:nonroot&#10;~10MB&#10;CVE 표면 ↓↓" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="400" y="580" width="140" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t4_4" value="kubectl / kustomize&#10;Manifests apply&#10;Rolling Update&#10;default strategy" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#326ce5;strokeColor=#326ce5;fontSize=10;fontStyle=1;verticalAlign=top;spacingTop=8;fontColor=#ffffff" vertex="1" parent="1">
+          <mxGeometry x="560" y="580" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t5_4" value="ConfigMap + Secret&#10;envFrom: configMapKeyRef&#10;envFrom: secretKeyRef&#10;⇒ 코드/설정 분리" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="80" y="680" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t6_4" value="Probes&#10;HTTP /health (liveness)&#10;HTTP /ready (readiness)&#10;initialDelay/period 분리" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="280" y="680" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t7_4" value="Ingress NGINX&#10;TLS / SSL redirect&#10;CORS annotation&#10;(cert-manager 연동 가능)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#ff8c00;fontSize=10;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="480" y="680" width="180" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="t8_4" value="Go slog (structured logging)  +  K8s ServiceAccount Token (auto-mount)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;fontSize=10;fontStyle=2;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="80" y="780" width="600" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="design_box" value="📐 설계 방식" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="720" y="540" width="620" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="d1_4" value="1️⃣ 12-Factor App  —  Config는 환경변수로 외부 주입&#10;ConfigMap(일반 설정) ↔ Secret(민감 정보) 분리. 같은 이미지가 dev/staging/prod 어디서나 동작" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="580" width="580" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d2_4" value="2️⃣ Immutable Infrastructure  —  이미지는 한 번 빌드, 어디서나 동일&#10;수정은 새 이미지 빌드 → 새 Pod 배포. 컨테이너 안에서 SSH/패치 안 함 (distroless라 애초에 불가)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="640" width="580" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d3_4" value="3️⃣ Defense in Depth  —  각 레이어마다 보안 적용&#10;CGO_ENABLED=0 + ldflags 스트립 + distroless + nonroot user + RBAC 최소 권한 + Secret 분리" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="700" width="580" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d4_4" value="4️⃣ Production-Readiness 체크리스트 충족&#10;Probes / HA replicas / Resource limits / Rolling Update / Structured logs / RBAC / TLS 모두 갖춤" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="760" width="580" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="d5_4" value="5️⃣ Fail-fast CI  —  vet → build → test → docker build, 한 단계라도 실패하면 다음 단계 차단&#10;concurrency 그룹으로 동일 ref 중복 실행 자동 취소 → 무료 분 절약" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="820" width="580" height="35" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

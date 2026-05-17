@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50">
+  <defs>
+    <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <rect x="0" y="5" width="40" height="40" rx="8" fill="url(#logoGrad)"/>
+  <text x="20" y="35" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle">W</text>
+  <text x="55" y="35" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#1f2937">WorldLand</text>
+</svg>

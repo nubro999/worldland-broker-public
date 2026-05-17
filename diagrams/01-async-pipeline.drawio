@@ -1,0 +1,90 @@
+<mxfile host="app.diagrams.net" modified="2026-05-06T10:00:00.000Z" agent="Claude" version="22.1.0" type="device">
+  <diagram name="Async Pipeline" id="diagram1">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="설계 #1 — 비동기 Provider 등록 파이프라인" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fillColor=none;strokeColor=none" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="700" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="패턴: Producer–Consumer  +  Worker Pool  +  At-least-once Delivery" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="350" y="65" width="700" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="problem_box" value="🎯 풀어야 했던 문제&#10;&#10;Provider 등록은 kubeadm join으로 수 분 소요 → HTTP 동기 모델로는 타임아웃.&#10;Provider가 수십~수백 명 → 동시 처리 + 재처리 보장 + 장애 복구 필요." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#ff8c00;fontSize=12;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="60" y="115" width="1280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="provider" value="Provider Agent&#10;(GPU 노드 데몬)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="80" y="380" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="redis" value="Redis Streams&#10;&#10;registration&#10;heartbeat&#10;response:{id}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=12" vertex="1" parent="1">
+          <mxGeometry x="370" y="350" width="180" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="workers" value="Worker Pool (Go goroutines)&#10;&#10;① registrationWorker&#10;② heartbeatMonitor&#10;③ podWatcher&#10;④ miningMonitor&#10;⑤ jobExpirationMonitor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;fontStyle=1;verticalAlign=top;spacingTop=12;align=left;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="660" y="320" width="240" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="k8s" value="Kubernetes&#10;&#10;kubeadm token create&#10;Pod / Node Watch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#326ce5;strokeColor=#326ce5;fontSize=12;fontStyle=1;fontColor=#ffffff;verticalAlign=top;spacingTop=12" vertex="1" parent="1">
+          <mxGeometry x="1010" y="320" width="180" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="pg" value="PostgreSQL&#10;providers table" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="1030" y="450" width="140" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="① XADD&#10;register / heartbeat" style="endArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#b85450;strokeWidth=3" edge="1" parent="1" source="provider" target="redis">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="② XREADGROUP &gt;&#10;Block 5s + XACK" style="endArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#82b366;strokeWidth=3" edge="1" parent="1" source="redis" target="workers">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="③ exec kubeadm&#10;Watch Pod events" style="endArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#326ce5;strokeWidth=3" edge="1" parent="1" source="workers" target="k8s">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="④ persist state" style="endArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#6c8ebf;strokeWidth=3" edge="1" parent="1" source="workers" target="pg">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="⑤ XADD response:{id}" style="endArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#9673a6;strokeWidth=2;dashed=1" edge="1" parent="1" source="workers" target="redis">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="640" y="290" />
+              <mxPoint x="460" y="290" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" value="⑥ join command" style="endArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#9673a6;strokeWidth=2;dashed=1" edge="1" parent="1" source="redis" target="provider">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_box" value="🛠️ 사용한 도구" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="60" y="600" width="640" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="tool1" value="Go 1.25&#10;goroutine + channel&#10;sync.WaitGroup&#10;context.Context" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="80" y="640" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool2" value="Redis Streams&#10;XADD / XREADGROUP&#10;XACK / XGROUP&#10;Consumer Group" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="240" y="640" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool3" value="Kubernetes&#10;client-go&#10;kubeadm CLI&#10;Watch API" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#326ce5;strokeColor=#326ce5;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8;fontColor=#ffffff" vertex="1" parent="1">
+          <mxGeometry x="400" y="640" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool4" value="PostgreSQL&#10;pgx/v5&#10;Connection Pool&#10;Migrations" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="560" y="640" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool_note" value="왜 이 조합?&#10;&#10;• Pub/Sub (X) → Streams (O): 메시지 영속성, Consumer Group으로 N개 워커 분산, ACK로 At-least-once&#10;• Kafka (X) → Redis (O): 처리량 요구 적음 + 이미 세션 캐시로 운용 중 → 운영 복잡도 ↓&#10;• 폴링 (X) → Watch API (O): 실시간 이벤트 수신, K8s API 부하 ↓" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10;strokeWidth=1" vertex="1" parent="1">
+          <mxGeometry x="80" y="755" width="600" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="design_box" value="📐 설계 방식" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="720" y="600" width="620" height="270" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="1️⃣ HTTP 동기 / 비동기 분리&#10;API Server는 빠른 응답만, 무거운 작업은 Worker Pool로 위임" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="640" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="2️⃣ 단일 책임 워커 (5개 분리)&#10;장애 격리 — 한 워커 패닉 나도 다른 워커 영향 없음" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="690" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="3️⃣ At-least-once 보장 (XACK)&#10;ACK 전 크래시 → 다른 컨슈머가 자동 재처리 → 핸들러는 멱등성 보장" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="740" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="4️⃣ Graceful shutdown&#10;SIGTERM → context.cancel() → 모든 워커 안전 종료 (sync.WaitGroup.Wait)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="790" width="580" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

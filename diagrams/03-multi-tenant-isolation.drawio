@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" modified="2026-05-06T10:00:00.000Z" agent="Claude" version="22.1.0" type="device">
+  <diagram name="Multi-Tenant Isolation" id="diagram3">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="설계 #3 — Kubernetes Multi-Tenant GPU 격리" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fillColor=none;strokeColor=none" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="700" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="패턴: Defense in Depth  —  자원·네트워크·스케줄링 3중 격리 + RBAC 최소 권한" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="350" y="65" width="700" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="problem_box" value="🎯 풀어야 했던 문제&#10;&#10;여러 사용자가 같은 GPU 클러스터를 공유 → A 사용자가 B의 Pod에 네트워크 접근 / 자원 독점 / 권한 탈취 시도 가능.&#10;클라우드 IaaS 수준의 격리(EC2처럼)를 K8s 컨테이너 환경에서 어떻게 구현할 것인가?" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#ff8c00;fontSize=12;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="60" y="115" width="1280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="layer_label" value="3중 방어 (Defense in Depth)" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;fontColor=#333333" vertex="1" parent="1">
+          <mxGeometry x="60" y="210" width="850" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="tenant_ns" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f9ff;strokeColor=#326ce5;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10;strokeWidth=3;dashed=1" vertex="1" parent="1">
+          <mxGeometry x="60" y="245" width="850" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="tenant_label" value="Namespace: tenant-{userID}" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fillColor=none;strokeColor=none;fontColor=#326ce5" vertex="1" parent="1">
+          <mxGeometry x="80" y="252" width="300" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="layer1" value="Layer 1 — 자원 격리 (ResourceQuota)&#10;&#10;requests.nvidia.com/gpu = N&#10;limits.cpu / limits.memory&#10;&#10;⇒ 한 테넌트가 GPU 독점 불가" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="80" y="290" width="250" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="layer2" value="Layer 2 — 네트워크 격리 (NetworkPolicy x3)&#10;&#10;① allow-internal&#10;     같은 namespace 내부 Pod만 통신 허용&#10;② allow-ingress-whitelist&#10;     ingress-nginx → Jupyter(:8888)만 진입 가능&#10;③ allow-egress-essential&#10;     DNS/HTTPS/PG/MinIO만 외부 송신 허용&#10;&#10;⇒ 테넌트 간 직접 통신 완전 차단" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="345" y="290" width="280" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="layer3" value="Layer 3 — 스케줄링 격리 (Taint + Toleration)&#10;&#10;Worker Node에 Taint:&#10;  worldland.io/dedicated-rental:NoSchedule&#10;&#10;GPU Pod에 Toleration:&#10;  같은 키 + Operator: Exists&#10;&#10;NodeSelector:&#10;  worldland.io/rental-type=gpu&#10;&#10;⇒ 일반 Pod은 GPU 노드 진입 불가" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="640" y="290" width="250" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="qos_pod" value="GPU Pod (Guaranteed QoS)&#10;Requests = Limits&#10;⇒ EC2처럼 정확히 약속된 자원만 사용&#10;⇒ OOM 시 마지막에 evict 됨" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="80" y="470" width="250" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="rbac_label" value="추가 방어선" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fillColor=none;strokeColor=none;fontColor=#333333" vertex="1" parent="1">
+          <mxGeometry x="940" y="210" width="400" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="rbac_box" value="Layer 4 — RBAC 최소 권한&#10;&#10;ServiceAccount: proxy-sa&#10;ClusterRole: proxy-server-role&#10;&#10;허용된 verb:&#10;• pods, pods/log: get/list/watch/create/delete&#10;• namespaces: create/get/list/delete&#10;• resourcequotas: create/get/update/delete&#10;• networkpolicies: create/get/list/delete&#10;• nodes: get/list (scheduling 정보)&#10;&#10;⇒ 백엔드가 탈취돼도 권한 한정&#10;⇒ Secrets 읽기·exec 권한 없음" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;fontStyle=1;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="940" y="245" width="400" height="380" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_box" value="🛠️ 사용한 도구 (모두 K8s 네이티브 프리미티브)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="60" y="650" width="640" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="Namespace&#10;테넌트 경계" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#326ce5;strokeColor=#326ce5;fontSize=10;fontStyle=1;verticalAlign=middle;fontColor=#ffffff" vertex="1" parent="1">
+          <mxGeometry x="80" y="690" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="ResourceQuota&#10;자원 한도" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=10;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="220" y="690" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t3" value="NetworkPolicy&#10;네트워크 규칙" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=10;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="360" y="690" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t4" value="Taint/Toleration&#10;노드 분리" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=10;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="500" y="690" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t5" value="RBAC&#10;ClusterRole/Binding" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="80" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t6" value="QoS Class&#10;Guaranteed" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=10;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="220" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t7" value="client-go&#10;TenantManager" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#326ce5;strokeColor=#326ce5;fontSize=10;fontStyle=1;verticalAlign=middle;fontColor=#ffffff" vertex="1" parent="1">
+          <mxGeometry x="360" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="t8" value="Cascade Rollback&#10;테넌트 생성 실패 시" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#ff8c00;fontSize=10;fontStyle=1;verticalAlign=middle" vertex="1" parent="1">
+          <mxGeometry x="500" y="770" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="design_box" value="📐 설계 방식" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="720" y="650" width="620" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="d1_3" value="1️⃣ Defense in Depth (다층 방어)&#10;한 레이어가 뚫려도 다음 레이어가 차단 — 보안 사고 영향 최소화" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="690" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d2_3" value="2️⃣ Namespace per Tenant&#10;TenantManager.CreateTenantEnvironment() — 첫 Job 생성 시 lazy provisioning" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="740" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d3_3" value="3️⃣ Atomic Provisioning + Cascade Rollback&#10;Quota 또는 NetworkPolicy 생성 실패 시 namespace 통째로 삭제 → 일관성 보장" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="790" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d4_3" value="4️⃣ K8s 네이티브만 사용 (커스텀 격리 X)&#10;CRD/Operator 없이 표준 리소스로 — 운영 단순성 + 호환성 ↑" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="840" width="580" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

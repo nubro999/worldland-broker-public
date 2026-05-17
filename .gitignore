@@ -1,0 +1,46 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Build outputs (Go binaries are reproducible via `make build`; never commit them)
+bin/
+dist/
+k8s-proxy-server/bin/
+k8s-proxy-server/server          # `go build -o server ./cmd/server`
+k8s-proxy-server/server-*        # server-linux, server-linux-v2, server-linux-new, ...
+k8s-proxy-server/k8s-proxy-server
+k8s-proxy-server/*-sdk*
+k8s-proxy-server/*-agent*
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Node (frontend)
+node_modules/
+.npm
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/

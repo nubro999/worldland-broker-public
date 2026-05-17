@@ -1,0 +1,6 @@
+컨텐츠, 기획, 에셋, 디자인, 코딩
+에셋: 사진, 영상, 인터렉티브, 3D 모델
+사진 : 나노바나나
+영상 : Kling, remotion(claude code skills)
+인터렉티브 : 3D.js, three.js
+3D 모델 : Spline

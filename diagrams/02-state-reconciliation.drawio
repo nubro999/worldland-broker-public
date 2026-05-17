@@ -1,0 +1,88 @@
+<mxfile host="app.diagrams.net" modified="2026-05-06T10:00:00.000Z" agent="Claude" version="22.1.0" type="device">
+  <diagram name="State Reconciliation" id="diagram2">
+    <mxGraphModel dx="1422" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="설계 #2 — 3-Tier 상태 관리 + Crash Recovery" style="text;html=1;align=center;verticalAlign=middle;fontSize=22;fontStyle=1;fillColor=none;strokeColor=none" vertex="1" parent="1">
+          <mxGeometry x="350" y="30" width="700" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="원칙: &quot;Kubernetes가 진실이다&quot;  —  메모리/DB는 캐시, 충돌 시 K8s 우선" style="text;html=1;align=center;verticalAlign=middle;fontSize=14;fontStyle=2;fillColor=none;strokeColor=none;fontColor=#666666" vertex="1" parent="1">
+          <mxGeometry x="350" y="65" width="700" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="problem_box" value="🎯 풀어야 했던 문제&#10;&#10;서버가 재시작되면 in-memory 상태(GPU 카운터)가 날아간다. 사용자가 kubectl로 직접 Pod을 지우면 상태가 어긋난다.&#10;DB만 신뢰하면 K8s 실제 상태와 어긋나고, K8s만 신뢰하면 매 요청마다 K8s API 호출 → 부하 폭발." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff4e6;strokeColor=#ff8c00;fontSize=12;align=left;verticalAlign=top;spacingTop=10;spacingLeft=14;strokeWidth=2" vertex="1" parent="1">
+          <mxGeometry x="60" y="115" width="1280" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="tier1" value="Tier 1 — In-Memory Cache  (Hot Path)&#10;map[providerID]*ProviderState  +  sync.RWMutex&#10;빠른 읽기·쓰기  •  자원 할당 시 트랜잭션 + 롤백" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1;align=left;spacingLeft=20;verticalAlign=middle;strokeWidth=3" vertex="1" parent="1">
+          <mxGeometry x="60" y="225" width="700" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tier2" value="Tier 2 — PostgreSQL  (Durable)&#10;providers table  •  pgx/v5 connection pool&#10;영속성 보장  •  Search 쿼리  •  Heartbeat best-effort" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1;align=left;spacingLeft=20;verticalAlign=middle;strokeWidth=3" vertex="1" parent="1">
+          <mxGeometry x="60" y="355" width="700" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tier3" value="Tier 3 — Kubernetes API  (Source of Truth)&#10;Pods · Services · Nodes  •  Watch API stream&#10;실제 자원 사용 현황의 단일 진실  •  사용자 우회 작업도 자동 감지" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=13;fontStyle=1;align=left;spacingLeft=20;verticalAlign=middle;strokeWidth=3" vertex="1" parent="1">
+          <mxGeometry x="60" y="485" width="700" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="sync_arrow_12" value="persist" style="endArrow=classic;startArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#000000;strokeWidth=2" edge="1" parent="1" source="tier1" target="tier2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="sync_arrow_23" value="Watch event = reconcile" style="endArrow=classic;startArrow=classic;html=1;fontSize=11;fontStyle=1;strokeColor=#000000;strokeWidth=2" edge="1" parent="1" source="tier2" target="tier3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="recovery_box" value="🔄 Crash Recovery — Orchestrator.Start() 시 3단계" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10;strokeWidth=3" vertex="1" parent="1">
+          <mxGeometry x="800" y="225" width="540" height="360" as="geometry" />
+        </mxCell>
+        <mxCell id="step1" value="Step 1   loadProvidersFromDB(ctx)&#10;PostgreSQL → in-memory map 복원&#10;repo.ListAll() → providers[id] = state" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;align=left;verticalAlign=top;spacingTop=8;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="820" y="265" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step2" value="Step 2   RecoverMiningStates(ctx)&#10;K8s API → 마이닝 Pod 실제 상태 조회&#10;MiningPodExists() → MiningPodName / MiningStatus 보정" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;align=left;verticalAlign=top;spacingTop=8;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="820" y="365" width="500" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="step3" value="Step 3   RecoverJobAllocations(ctx)&#10;K8s ListGPUJobPods() → pod.Resources 합산&#10;Available = Total − InUse − Mining&#10;⇒ GPU 카운터를 K8s 실제 상태와 정합" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;align=left;verticalAlign=top;spacingTop=8;spacingLeft=14" vertex="1" parent="1">
+          <mxGeometry x="820" y="465" width="500" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="r_arrow1" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="step1" target="tier1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_arrow2" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="step2" target="tier1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r_arrow3" value="" style="endArrow=classic;html=1;strokeColor=#9673a6;strokeWidth=2;dashed=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0" edge="1" parent="1" source="step3" target="tier1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="tools_box" value="🛠️ 사용한 도구" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="60" y="620" width="640" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="tool1_2" value="Go sync 패키지&#10;sync.RWMutex&#10;sync.WaitGroup&#10;atomic counters" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="80" y="660" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool2_2" value="pgx/v5&#10;PostgreSQL driver&#10;pool.Acquire()&#10;CRUD repo" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="240" y="660" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool3_2" value="client-go Watch&#10;Long-poll stream&#10;ADDED/MODIFIED/&#10;DELETED 이벤트" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#326ce5;strokeColor=#326ce5;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8;fontColor=#ffffff" vertex="1" parent="1">
+          <mxGeometry x="400" y="660" width="140" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool4_2" value="K8s ListPods&#10;Label Selector&#10;worldland.io/&#10;gpu-rental=true" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;fontStyle=1;verticalAlign=top;spacingTop=8" vertex="1" parent="1">
+          <mxGeometry x="560" y="660" width="120" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tool_note2" value="동시성 보호: providersMu.Lock() + 명시적 롤백 패턴&#10;자원 할당 실패 시 GPU/CPU/Memory 단계별로 되돌림 → race condition 없는 트랜잭션 모방" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#666666;fontSize=11;align=left;verticalAlign=top;spacingTop=8;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="80" y="775" width="600" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="design_box" value="📐 설계 방식" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontSize=14;fontStyle=1;verticalAlign=top;spacingTop=10" vertex="1" parent="1">
+          <mxGeometry x="720" y="620" width="620" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="d1_2" value="1️⃣ 진실의 단일 출처 (Source of Truth)&#10;충돌 시 항상 K8s 우선 — DB/메모리는 성능을 위한 캐시일 뿐" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="660" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d2_2" value="2️⃣ 이벤트 기반 reconciliation (Watch API)&#10;Pod DELETE/Failed/OOMKilled → 자동 자원 회수 (사용자 우회 작업도 정리)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="710" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d3_2" value="3️⃣ Degraded Mode 동작&#10;DB 다운돼도 in-memory로 readonly 동작 — 가용성 우선 (CAP에서 AP)" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="760" width="580" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="d4_2" value="4️⃣ Idempotent Recovery&#10;3단계 복구가 몇 번을 다시 돌아도 같은 결과 — 부분 실패 안전" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacingTop=6;spacingLeft=10" vertex="1" parent="1">
+          <mxGeometry x="740" y="810" width="580" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
